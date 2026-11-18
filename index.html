@@ -34,7 +34,7 @@
     }
 
     .app-shell {
-      max-width: 1180px;
+      max-width: 1240px;
       margin: 0 auto;
     }
 
@@ -190,7 +190,7 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 24px 28px;
+      padding: 24px 26px;
       box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
     }
 
@@ -340,18 +340,18 @@
 
     .algo-layout {
       display: grid;
-      grid-template-columns: 1fr 275px;
-      gap: 12px;
+      grid-template-columns: 1fr 250px;
+      gap: 10px;
       align-items: center;
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 960px) {
       .algo-layout {
         grid-template-columns: 1fr;
       }
     }
 
-    /* Diagrama de Gantt */
+    /* Diagrama de Gantt (40 columnas) */
     .gantt-wrapper {
       overflow-x: auto;
     }
@@ -364,25 +364,26 @@
     }
 
     .gantt-table th.proc-label {
-      width: 34px;
-      font-size: 0.74rem;
+      width: 28px;
+      font-size: 0.72rem;
       font-weight: 700;
       text-align: center;
       border: 1px solid #475569;
       background: #f8fafc;
       color: #1e293b;
-      padding: 1px;
+      padding: 1px 0;
     }
 
     .gantt-cell {
       border: 1px solid #94a3b8;
-      height: 20px;
+      height: 19px;
       text-align: center;
-      font-size: 0.64rem;
+      font-size: 0.56rem;
       font-weight: 700;
       color: #fff;
       cursor: pointer;
       padding: 0;
+      overflow: hidden;
     }
 
     .gantt-cell:hover {
@@ -404,7 +405,7 @@
     .gantt-time-row td {
       border: 1px solid #cbd5e1;
       background: #f8fafc;
-      font-size: 0.6rem;
+      font-size: 0.55rem;
       color: #475569;
       text-align: center;
       padding: 1px 0;
@@ -415,13 +416,13 @@
     .metrics-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.75rem;
+      font-size: 0.74rem;
     }
 
     .metrics-table th,
     .metrics-table td {
       border: 1px solid #64748b;
-      padding: 2px 4px;
+      padding: 2px 3px;
       text-align: center;
     }
 
@@ -437,12 +438,12 @@
     }
 
     .metric-input {
-      width: 50px;
+      width: 46px;
       border: 1px solid #cbd5e1;
       border-radius: 4px;
       text-align: center;
-      font-size: 0.75rem;
-      padding: 1px 3px;
+      font-size: 0.74rem;
+      padding: 1px 2px;
       font-weight: 600;
       background: #fff;
     }
@@ -506,7 +507,7 @@
     body.pdf-blank-mode #worksheet {
       border: none;
       box-shadow: none;
-      padding: 4px 8px;
+      padding: 2px 4px;
       max-width: 100%;
     }
 
@@ -533,7 +534,7 @@
     @media print {
       @page {
         size: A4 portrait;
-        margin: 7mm;
+        margin: 6mm;
       }
 
       body {
@@ -558,7 +559,7 @@
       }
 
       .algo-block {
-        padding: 6px 8px;
+        padding: 5px 6px;
       }
 
       .algorithms-grid {
@@ -566,7 +567,7 @@
       }
 
       .gantt-cell {
-        height: 16px;
+        height: 15px;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
@@ -622,8 +623,8 @@
         </div>
 
         <div class="control-item">
-          <label for="maxTotalBurst"><strong>Suma máx. ráfagas (plantilla):</strong></label>
-          <input type="number" id="maxTotalBurst" min="15" max="35" value="30" />
+          <label for="maxTotalBurst"><strong>Suma máx. ráfagas (aleatorio):</strong></label>
+          <input type="number" id="maxTotalBurst" min="15" max="40" value="35" />
         </div>
 
         <div class="btn-group" style="margin-left:auto;">
@@ -697,6 +698,9 @@
   </div>
 
   <script>
+    // Número fijo de columnas en la cuadrícula de Gantt (40 ms)
+    const FIXED_GRID_COLS = 40;
+
     const PROCESS_COLORS = [
       '#3b82f6', // P1
       '#10b981', // P2
@@ -800,8 +804,13 @@
       return state.processes.reduce((acc, p) => acc + (parseInt(p.burst, 10) || 1), 0);
     }
 
+    // La cuadrícula muestra siempre 40 ms (o más si el usuario edita manualmente las ráfagas por encima de 40)
+    function getGridCols() {
+      return Math.max(FIXED_GRID_COLS, getTotalBurst());
+    }
+
     function resetUserWork() {
-      const cols = Math.max(getTotalBurst(), 1);
+      const cols = getGridCols();
       state.userWork = {};
       ALGORITHMS.forEach(algo => {
         state.userWork[algo.id] = {
@@ -817,7 +826,7 @@
     }
 
     function ensureUserWorkIntegrity() {
-      const cols = Math.max(getTotalBurst(), 1);
+      const cols = getGridCols();
       ALGORITHMS.forEach(algo => {
         if (!state.userWork[algo.id]) {
           state.userWork[algo.id] = { timeline: [], metrics: {}, avgTr: '', avgTe: '' };
@@ -833,18 +842,18 @@
 
     function generateRandomExercise() {
       const n = parseInt(document.getElementById('numProcesses').value, 10) || 5;
-      const maxTotal = Math.max(n * 2, Math.min(35, parseInt(document.getElementById('maxTotalBurst').value, 10) || 30));
-      const minTotal = Math.max(n * 3, Math.min(22, maxTotal - 4));
+      const maxTotal = Math.max(n * 2, Math.min(FIXED_GRID_COLS, parseInt(document.getElementById('maxTotalBurst').value, 10) || 35));
+      const minTotal = Math.max(n * 3, Math.min(22, maxTotal - 6));
       const targetTotal = Math.floor(Math.random() * (maxTotal - minTotal + 1)) + minTotal;
 
       const bursts = new Array(n).fill(2);
       let rem = targetTotal - n * 2;
       while (rem > 0) {
         const idx = Math.floor(Math.random() * n);
-        if (bursts[idx] < 9) {
+        if (bursts[idx] < 10) {
           bursts[idx]++;
           rem--;
-        } else if (bursts.every(b => b >= 9)) {
+        } else if (bursts.every(b => b >= 10)) {
           break;
         }
       }
@@ -1013,7 +1022,7 @@
     function renderAlgorithms() {
       const container = document.getElementById('algorithmsContainer');
       container.innerHTML = '';
-      const totalBurst = getTotalBurst();
+      const gridCols = getGridCols();
 
       ALGORITHMS.forEach(algo => {
         const sol = state.solutions[algo.id];
@@ -1031,7 +1040,7 @@
         state.processes.forEach((p, idx) => {
           const color = PROCESS_COLORS[idx % PROCESS_COLORS.length];
           let cellsHtml = '';
-          for (let t = 0; t < totalBurst; t++) {
+          for (let t = 0; t < gridCols; t++) {
             const isFilled = timelineToUse[t] === p.id;
             const bgStyle = isFilled ? `background:${color};` : '';
             const label = isFilled ? p.name : '';
@@ -1046,7 +1055,7 @@
         });
 
         let timeCellsHtml = '<td><strong>ms</strong></td>';
-        for (let t = 1; t <= totalBurst; t++) {
+        for (let t = 1; t <= gridCols; t++) {
           timeCellsHtml += `<td>${t}</td>`;
         }
 
@@ -1156,8 +1165,9 @@
       }
 
       const activePid = state.userWork[algoId].timeline[timeIdx];
-      const cells = document.querySelectorAll(`.gantt-cell[data-algo="${algoId}"][data-time="${timeIdx}"]`);
-      cells.forEach(c => {
+      const cells = document.querySelectorAll(`.gantt-cell[data-algo="${algo.id}"][data-time="${timeIdx}"]`);
+      // Actualizar toda la columna timeIdx del algoritmo actual
+      document.querySelectorAll(`.gantt-cell[data-algo="${algoId}"][data-time="${timeIdx}"]`).forEach(c => {
         c.classList.remove('wrong-cell');
         const pid = parseInt(c.dataset.proc, 10);
         const procIndex = state.processes.findIndex(p => p.id === pid);
@@ -1175,24 +1185,36 @@
 
     function checkUserAnswers() {
       const totalBurst = getTotalBurst();
+      const gridCols = getGridCols();
 
       ALGORITHMS.forEach(algo => {
         const sol = state.solutions[algo.id];
         const uw = state.userWork[algo.id];
         let ganttCorrect = 0;
+        let extraPaintedErrors = 0;
 
-        for (let t = 0; t < totalBurst; t++) {
-          const expectedPid = sol.timeline[t];
-          const userPid = uw.timeline[t];
+        for (let t = 0; t < gridCols; t++) {
+          const expectedPid = t < totalBurst ? sol.timeline[t] : null;
+          const userPid = uw.timeline[t] || null;
           const colCells = document.querySelectorAll(`.gantt-cell[data-algo="${algo.id}"][data-time="${t}"]`);
           colCells.forEach(c => c.classList.remove('wrong-cell'));
 
-          if (userPid === expectedPid) {
-            ganttCorrect++;
-          } else {
+          if (t < totalBurst) {
+            if (userPid === expectedPid) {
+              ganttCorrect++;
+            } else {
+              colCells.forEach(c => {
+                const pid = parseInt(c.dataset.proc, 10);
+                if (pid === userPid || (userPid === null && pid === expectedPid)) {
+                  c.classList.add('wrong-cell');
+                }
+              });
+            }
+          } else if (userPid !== null) {
+            // Casilla pintada más allá de la duración total de las ráfagas
+            extraPaintedErrors++;
             colCells.forEach(c => {
-              const pid = parseInt(c.dataset.proc, 10);
-              if (pid === userPid || (userPid === null && pid === expectedPid)) {
+              if (parseInt(c.dataset.proc, 10) === userPid) {
                 c.classList.add('wrong-cell');
               }
             });
@@ -1236,12 +1258,13 @@
 
         const banner = document.getElementById(`feedback-${algo.id}`);
         banner.className = 'feedback-banner no-print show';
-        if (ganttCorrect === totalBurst && metricsCorrect === totalMetrics) {
+        if (ganttCorrect === totalBurst && extraPaintedErrors === 0 && metricsCorrect === totalMetrics) {
           banner.classList.add('ok');
           banner.textContent = `¡Perfecto! Diagrama de Gantt (${ganttCorrect}/${totalBurst} ms) y todos los tiempos son correctos.`;
         } else {
           banner.classList.add('partial');
-          banner.textContent = `Gantt correcto: ${ganttCorrect}/${totalBurst} ms | Cálculos correctos: ${metricsCorrect}/${totalMetrics}.`;
+          const extraMsg = extraPaintedErrors > 0 ? ` (${extraPaintedErrors} ms pintados de más)` : '';
+          banner.textContent = `Gantt correcto: ${ganttCorrect}/${totalBurst} ms${extraMsg} | Cálculos correctos: ${metricsCorrect}/${totalMetrics}.`;
         }
       });
     }
@@ -1272,7 +1295,7 @@
 
       if (typeof window.html2pdf !== 'undefined') {
         const opt = {
-          margin: [6, 6, 6, 6],
+          margin: [5, 5, 5, 5],
           filename,
           image: { type: 'jpeg', quality: 0.98 },
           html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
