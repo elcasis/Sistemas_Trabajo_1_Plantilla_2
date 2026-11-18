@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Planificación de Procesos - Generador, Práctica y Plantilla PDF</title>
+  <!-- Librería html2pdf para descarga directa en PDF (con fallback nativo a impresión A4) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --border: #cbd5e1;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+      padding: 20px;
+    }
+
+    .app-shell {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    /* Barra de herramientas superior (oculta al imprimir/exportar PDF) */
+    .toolbar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .toolbar-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .toolbar-title h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: #0f172a;
+    }
+
+    .toolbar-title p {
+      margin: 2px 0 0;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button {
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 8px 13px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+
+    button:hover {
+      filter: brightness(0.96);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: #fff;
+    }
+
+    .btn-outline {
+      background: #fff;
+      border-color: var(--border);
+      color: var(--ink);
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 0.875rem;
+    }
+
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .control-item input[type="number"],
+    .control-item select {
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      width: 72px;
+    }
+
+    .palette-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+
+    .palette-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-right: 4px;
+    }
+
+    .brush-btn {
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border: 2px solid transparent;
+      color: #fff;
+    }
+
+    .brush-btn.eraser {
+      background: #fff;
+      color: #334155;
+      border-color: #94a3b8;
+    }
+
+    .brush-btn.selected {
+      outline: 3px solid #0f172a;
+      transform: scale(1.05);
+    }
+
+    /* Hoja de ejercicio / Plantilla imprimible */
+    #worksheet {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 28px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      gap: 16px;
+    }
+
+    .sheet-header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #0f172a;
+    }
+
+    .student-fields {
+      display: flex;
+      gap: 18px;
+      font-size: 0.85rem;
+      color: #334155;
+      white-space: nowrap;
+    }
+
+    .student-line {
+      display: inline-block;
+      border-bottom: 1px solid #64748b;
+      width: 160px;
+      height: 15px;
+    }
+
+    .enunciado {
+      font-size: 0.88rem;
+      color: #1e293b;
+      margin-bottom: 12px;
+      text-align: justify;
+    }
+
+    .enunciado p {
+      margin: 0 0 6px;
+    }
+
+    .enunciado ul {
+      margin: 4px 0 8px 20px;
+      padding: 0;
+    }
+
+    .enunciado li {
+      margin-bottom: 3px;
+    }
+
+    /* Tabla 1: Procesos */
+    .table-caption {
+      font-size: 0.8rem;
+      font-style: italic;
+      color: #475569;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .process-table {
+      width: 100%;
+      max-width: 650px;
+      margin: 0 auto 12px;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+
+    .process-table th {
+      background: #000000;
+      color: #ffffff;
+      font-weight: 700;
+      padding: 6px 10px;
+      border: 1px solid #000;
+      text-align: center;
+    }
+
+    .process-table td {
+      border: 1px solid #334155;
+      padding: 4px 8px;
+      text-align: center;
+      color: #334155;
+    }
+
+    .process-table input {
+      width: 64px;
+      text-align: center;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .proc-badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    /* Bloques de los 4 algoritmos */
+    .algorithms-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .algo-block {
+      border: 1px solid #94a3b8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #ffffff;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .algo-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .algo-title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: #0f172a;
+    }
+
+    .algo-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .algo-layout {
+      display: grid;
+      grid-template-columns: 1fr 275px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .algo-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Diagrama de Gantt */
+    .gantt-wrapper {
+      overflow-x: auto;
+    }
+
+    .gantt-table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+      user-select: none;
+    }
+
+    .gantt-table th.proc-label {
+      width: 34px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-align: center;
+      border: 1px solid #475569;
+      background: #f8fafc;
+      color: #1e293b;
+      padding: 1px;
+    }
+
+    .gantt-cell {
+      border: 1px solid #94a3b8;
+      height: 20px;
+      text-align: center;
+      font-size: 0.64rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .gantt-cell:hover {
+      outline: 2px solid #2563eb;
+      z-index: 2;
+    }
+
+    .gantt-cell.wrong-cell {
+      box-shadow: inset 0 0 0 2px #dc2626;
+      background-image: repeating-linear-gradient(
+        45deg,
+        rgba(220, 38, 38, 0.25),
+        rgba(220, 38, 38, 0.25) 4px,
+        transparent 4px,
+        transparent 8px
+      );
+    }
+
+    .gantt-time-row td {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      font-size: 0.6rem;
+      color: #475569;
+      text-align: center;
+      padding: 1px 0;
+      font-weight: 600;
+    }
+
+    /* Tabla de tiempos Tr y Te */
+    .metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+    }
+
+    .metrics-table th,
+    .metrics-table td {
+      border: 1px solid #64748b;
+      padding: 2px 4px;
+      text-align: center;
+    }
+
+    .metrics-table th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .metrics-table tfoot td {
+      background: #f8fafc;
+      font-weight: 700;
+    }
+
+    .metric-input {
+      width: 50px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      text-align: center;
+      font-size: 0.75rem;
+      padding: 1px 3px;
+      font-weight: 600;
+      background: #fff;
+    }
+
+    .metric-input.input-ok {
+      border-color: var(--success);
+      background: #dcfce7;
+      color: #14532d;
+    }
+
+    .metric-input.input-err {
+      border-color: var(--danger);
+      background: #fee2e2;
+      color: #7f1d1d;
+    }
+
+    .feedback-banner {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .feedback-banner.show {
+      display: block;
+    }
+
+    .feedback-banner.ok {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .feedback-banner.partial {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+    }
+
+    .formula-hint {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #475569;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-top: 1px dashed #cbd5e1;
+      padding-top: 6px;
+    }
+
+    /* Modos de exportación PDF e impresión A4 */
+    body.pdf-export-mode .no-print,
+    body.pdf-blank-mode .no-print {
+      display: none !important;
+    }
+
+    body.pdf-export-mode #worksheet,
+    body.pdf-blank-mode #worksheet {
+      border: none;
+      box-shadow: none;
+      padding: 4px 8px;
+      max-width: 100%;
+    }
+
+    body.pdf-blank-mode .metric-input {
+      color: transparent !important;
+      border-color: transparent !important;
+      background: transparent !important;
+    }
+
+    body.pdf-export-mode .process-table input,
+    body.pdf-blank-mode .process-table input {
+      border: none;
+      background: transparent;
+      font-weight: 600;
+    }
+
+    body.pdf-export-mode .proc-badge,
+    body.pdf-blank-mode .proc-badge {
+      background: transparent !important;
+      color: #1e293b !important;
+      padding: 0;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 7mm;
+      }
+
+      body {
+        background: #fff;
+        padding: 0;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      #worksheet {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+
+      .process-table input,
+      .metric-input {
+        border: none !important;
+        background: transparent !important;
+      }
+
+      .algo-block {
+        padding: 6px 8px;
+      }
+
+      .algorithms-grid {
+        gap: 8px;
+      }
+
+      .gantt-cell {
+        height: 16px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .process-table th {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- BARRA DE CONTROL INTERACTIVA -->
+    <div class="toolbar no-print">
+      <div class="toolbar-top">
+        <div class="toolbar-title">
+          <h1>Simulador y Generador de Ejercicios: Planificación de Procesos</h1>
+          <p>Rellena la plantilla en el navegador, genera enunciados aleatorios o descarga el PDF en blanco o resuelto.</p>
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn-outline" id="btnOriginal">
+            📋 Cargar Ejercicio Original
+          </button>
+          <button type="button" class="btn-primary" id="btnRandom">
+            🎲 Generar Ejercicio Aleatorio
+          </button>
+          <button type="button" class="btn-success" id="btnCheck">
+            ✅ Comprobar Respuestas
+          </button>
+          <button type="button" class="btn-warning" id="btnToggleSolution">
+            👁️ Mostrar Solución
+          </button>
+          <button type="button" class="btn-outline" id="btnClearUser">
+            🧹 Limpiar Plantilla
+          </button>
+        </div>
+      </div>
+
+      <div class="controls-row">
+        <div class="control-item">
+          <label for="numProcesses"><strong>Nº Procesos:</strong></label>
+          <select id="numProcesses">
+            <option value="4">4</option>
+            <option value="5" selected>5</option>
+            <option value="6">6</option>
+          </select>
+        </div>
+
+        <div class="control-item">
+          <label for="quantumInput"><strong>Cuanto RR (ms):</strong></label>
+          <input type="number" id="quantumInput" min="1" max="10" value="3" />
+        </div>
+
+        <div class="control-item">
+          <label for="maxTotalBurst"><strong>Suma máx. ráfagas (plantilla):</strong></label>
+          <input type="number" id="maxTotalBurst" min="15" max="35" value="30" />
+        </div>
+
+        <div class="btn-group" style="margin-left:auto;">
+          <button type="button" class="btn-outline" id="btnPdfBlank">
+            📄 Descargar PDF (Plantilla en Blanco)
+          </button>
+          <button type="button" class="btn-outline" id="btnPdfCurrent">
+            📥 Descargar PDF (Vista Actual / Resuelto)
+          </button>
+        </div>
+      </div>
+
+      <div class="palette-bar">
+        <span class="palette-label">Modo interactivo: haz clic o arrastra sobre las filas del diagrama de Gantt para pintar cada milisegundo:</span>
+        <div id="brushContainer" class="btn-group"></div>
+      </div>
+    </div>
+
+    <!-- HOJA DE EJERCICIO / PLANTILLA EXPORTABLE A PDF -->
+    <div id="worksheet">
+      <div class="sheet-header">
+        <h2>2. Planificación de procesos</h2>
+        <div class="student-fields">
+          <span>Nombre: <span class="student-line"></span></span>
+          <span>Fecha: <span class="student-line" style="width:95px;"></span></span>
+        </div>
+      </div>
+
+      <div class="enunciado">
+        <p>
+          Considere un conjunto de procesos que están esperando inicialmente en la cola de procesos, listos para comenzar su ejecución en el procesador.
+          En la <strong>Tabla 1</strong> se indica el orden que ocupa cada proceso en la cola de espera, la duración de su ráfaga de CPU en ms y la prioridad que tiene cada proceso (asumiendo que la prioridad más alta es el valor más bajo). Por último, suponga que los procesos han llegado todos en el instante cero.
+        </p>
+
+        <table class="process-table" id="processTable">
+          <thead>
+            <tr>
+              <th>Proceso</th>
+              <th>Orden de llegada</th>
+              <th>Prioridad</th>
+              <th>Duración de la ráfaga</th>
+            </tr>
+          </thead>
+          <tbody id="processTableBody"></tbody>
+        </table>
+        <div class="table-caption">
+          Tabla 1. Conjunto de procesos esperando en la cola de procesos. Fuente: elaboración propia.
+        </div>
+
+        <p>Considerando las condiciones anteriores se pide resolver las siguientes cuestiones:</p>
+        <ul>
+          <li>
+            Dibujar los diagramas de Gantt que representan la ejecución de los procesos utilizando los siguientes algoritmos de planificación:
+            <strong>FCFS</strong>, <strong>SJF</strong>, <strong>por prioridades sin desalojo</strong> y <strong>RR</strong>
+            (empleando en este caso un cuanto temporal de <strong id="quantumText">3</strong> ms).
+          </li>
+          <li>Calcular el tiempo medio de retorno en cada caso.</li>
+          <li>Calcular el tiempo medio de espera en cada caso.</li>
+        </ul>
+      </div>
+
+      <!-- CONTENEDOR DE LOS 4 ALGORITMOS -->
+      <div class="algorithms-grid" id="algorithmsContainer"></div>
+
+      <div class="formula-hint">
+        <span><strong>Llegada en t = 0:</strong> Tiempo de retorno (<em>T<sub>r</sub></em>) = Instante de finalización</span>
+        <span>Tiempo de espera (<em>T<sub>e</sub></em>) = <em>T<sub>r</sub></em> &minus; Duración de la ráfaga</span>
+        <span>Desempate por orden en la cola de espera (FCFS)</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PROCESS_COLORS = [
+      '#3b82f6', // P1
+      '#10b981', // P2
+      '#f59e0b', // P3
+      '#ef4444', // P4
+      '#8b5cf6', // P5
+      '#ec4899'  // P6
+    ];
+
+    const ALGORITHMS = [
+      { id: 'fcfs', title: '1. FCFS (First-Come, First-Served / Orden de llegada)', short: 'Sin desalojo' },
+      { id: 'sjf', title: '2. SJF (Shortest Job First / Trabajo más corto primero)', short: 'Sin desalojo' },
+      { id: 'prio', title: '3. Prioridad sin desalojo (1 = máxima prioridad)', short: 'Sin desalojo' },
+      { id: 'rr', title: '4. Round Robin (RR)', short: 'Con desalojo (Cuanto Q)' }
+    ];
+
+    const ORIGINAL_PROCESSES = [
+      { id: 1, name: 'P1', order: 1, priority: 2, burst: 6 },
+      { id: 2, name: 'P2', order: 2, priority: 4, burst: 8 },
+      { id: 3, name: 'P3', order: 3, priority: 2, burst: 5 },
+      { id: 4, name: 'P4', order: 4, priority: 1, burst: 4 },
+      { id: 5, name: 'P5', order: 5, priority: 3, burst: 7 }
+    ];
+
+    let state = {
+      processes: JSON.parse(JSON.stringify(ORIGINAL_PROCESSES)),
+      quantum: 3,
+      showingSolution: false,
+      activeBrush: 1,
+      isMouseDown: false,
+      userWork: {},
+      solutions: {}
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initEvents();
+      resetUserWork();
+      recalculateAndRender();
+    });
+
+    function initEvents() {
+      document.addEventListener('mouseup', () => {
+        state.isMouseDown = false;
+      });
+
+      document.getElementById('btnOriginal').addEventListener('click', () => {
+        state.processes = JSON.parse(JSON.stringify(ORIGINAL_PROCESSES));
+        state.quantum = 3;
+        document.getElementById('numProcesses').value = '5';
+        document.getElementById('quantumInput').value = '3';
+        state.showingSolution = false;
+        updateSolutionBtnLabel();
+        resetUserWork();
+        recalculateAndRender();
+      });
+
+      document.getElementById('btnRandom').addEventListener('click', generateRandomExercise);
+      document.getElementById('numProcesses').addEventListener('change', generateRandomExercise);
+
+      document.getElementById('quantumInput').addEventListener('change', (e) => {
+        const val = Math.max(1, Math.min(15, parseInt(e.target.value, 10) || 3));
+        e.target.value = val;
+        state.quantum = val;
+        recalculateAndRender();
+      });
+
+      document.getElementById('btnCheck').addEventListener('click', () => {
+        if (state.showingSolution) {
+          state.showingSolution = false;
+          updateSolutionBtnLabel();
+          renderAlgorithms();
+        }
+        checkUserAnswers();
+      });
+
+      document.getElementById('btnToggleSolution').addEventListener('click', () => {
+        state.showingSolution = !state.showingSolution;
+        updateSolutionBtnLabel();
+        renderAlgorithms();
+      });
+
+      document.getElementById('btnClearUser').addEventListener('click', () => {
+        state.showingSolution = false;
+        updateSolutionBtnLabel();
+        resetUserWork();
+        renderAlgorithms();
+      });
+
+      document.getElementById('btnPdfBlank').addEventListener('click', () => exportPDF(true));
+      document.getElementById('btnPdfCurrent').addEventListener('click', () => exportPDF(false));
+    }
+
+    function updateSolutionBtnLabel() {
+      const btn = document.getElementById('btnToggleSolution');
+      btn.innerHTML = state.showingSolution
+        ? '🙈 Ocultar Solución (Modo Práctica)'
+        : '👁️ Mostrar Solución';
+    }
+
+    function getTotalBurst() {
+      return state.processes.reduce((acc, p) => acc + (parseInt(p.burst, 10) || 1), 0);
+    }
+
+    function resetUserWork() {
+      const cols = Math.max(getTotalBurst(), 1);
+      state.userWork = {};
+      ALGORITHMS.forEach(algo => {
+        state.userWork[algo.id] = {
+          timeline: new Array(cols).fill(null),
+          metrics: {},
+          avgTr: '',
+          avgTe: ''
+        };
+        state.processes.forEach(p => {
+          state.userWork[algo.id].metrics[p.id] = { tr: '', te: '' };
+        });
+      });
+    }
+
+    function ensureUserWorkIntegrity() {
+      const cols = Math.max(getTotalBurst(), 1);
+      ALGORITHMS.forEach(algo => {
+        if (!state.userWork[algo.id]) {
+          state.userWork[algo.id] = { timeline: [], metrics: {}, avgTr: '', avgTe: '' };
+        }
+        const uw = state.userWork[algo.id];
+        while (uw.timeline.length < cols) uw.timeline.push(null);
+        if (uw.timeline.length > cols) uw.timeline = uw.timeline.slice(0, cols);
+        state.processes.forEach(p => {
+          if (!uw.metrics[p.id]) uw.metrics[p.id] = { tr: '', te: '' };
+        });
+      });
+    }
+
+    function generateRandomExercise() {
+      const n = parseInt(document.getElementById('numProcesses').value, 10) || 5;
+      const maxTotal = Math.max(n * 2, Math.min(35, parseInt(document.getElementById('maxTotalBurst').value, 10) || 30));
+      const minTotal = Math.max(n * 3, Math.min(22, maxTotal - 4));
+      const targetTotal = Math.floor(Math.random() * (maxTotal - minTotal + 1)) + minTotal;
+
+      const bursts = new Array(n).fill(2);
+      let rem = targetTotal - n * 2;
+      while (rem > 0) {
+        const idx = Math.floor(Math.random() * n);
+        if (bursts[idx] < 9) {
+          bursts[idx]++;
+          rem--;
+        } else if (bursts.every(b => b >= 9)) {
+          break;
+        }
+      }
+
+      const priorities = Array.from({ length: n }, () => Math.floor(Math.random() * 4) + 1);
+      if (!priorities.includes(1)) {
+        priorities[Math.floor(Math.random() * n)] = 1;
+      }
+
+      const newQuantum = [2, 3, 4][Math.floor(Math.random() * 3)];
+      state.quantum = newQuantum;
+      document.getElementById('quantumInput').value = newQuantum;
+
+      state.processes = Array.from({ length: n }, (_, i) => ({
+        id: i + 1,
+        name: `P${i + 1}`,
+        order: i + 1,
+        priority: priorities[i],
+        burst: bursts[i]
+      }));
+
+      state.showingSolution = false;
+      updateSolutionBtnLabel();
+      resetUserWork();
+      recalculateAndRender();
+    }
+
+    function computeAllSolutions() {
+      const procs = [...state.processes].sort((a, b) => a.order - b.order);
+      state.solutions = {
+        fcfs: solveNonPreemptive(procs, (a, b) => a.order - b.order),
+        sjf: solveNonPreemptive(procs, (a, b) => (a.burst - b.burst) || (a.order - b.order)),
+        prio: solveNonPreemptive(procs, (a, b) => (a.priority - b.priority) || (a.order - b.order)),
+        rr: solveRoundRobin(procs, state.quantum)
+      };
+    }
+
+    function solveNonPreemptive(procs, compareFn) {
+      const sorted = [...procs].sort(compareFn);
+      const timeline = [];
+      const metrics = {};
+      let currentTime = 0;
+
+      sorted.forEach(p => {
+        for (let t = 0; t < p.burst; t++) timeline.push(p.id);
+        currentTime += p.burst;
+        const tr = currentTime;
+        const te = tr - p.burst;
+        metrics[p.id] = { tr, te };
+      });
+
+      return finalizeMetrics(procs, timeline, metrics);
+    }
+
+    function solveRoundRobin(procs, quantum) {
+      const queue = procs.map(p => ({ ...p, remaining: p.burst }));
+      const timeline = [];
+      const finishTime = {};
+      let currentTime = 0;
+      let safety = 0;
+
+      while (queue.some(p => p.remaining > 0) && safety < 2000) {
+        safety++;
+        for (const p of queue) {
+          if (p.remaining > 0) {
+            const slice = Math.min(quantum, p.remaining);
+            for (let t = 0; t < slice; t++) timeline.push(p.id);
+            currentTime += slice;
+            p.remaining -= slice;
+            if (p.remaining === 0) finishTime[p.id] = currentTime;
+          }
+        }
+      }
+
+      const metrics = {};
+      procs.forEach(p => {
+        const tr = finishTime[p.id] || 0;
+        const te = tr - p.burst;
+        metrics[p.id] = { tr, te };
+      });
+
+      return finalizeMetrics(procs, timeline, metrics);
+    }
+
+    function finalizeMetrics(procs, timeline, metrics) {
+      let sumTr = 0;
+      let sumTe = 0;
+      procs.forEach(p => {
+        sumTr += metrics[p.id].tr;
+        sumTe += metrics[p.id].te;
+      });
+      const n = procs.length || 1;
+      return {
+        timeline,
+        metrics,
+        avgTr: +(sumTr / n).toFixed(2),
+        avgTe: +(sumTe / n).toFixed(2)
+      };
+    }
+
+    function recalculateAndRender() {
+      document.getElementById('quantumText').textContent = state.quantum;
+      ensureUserWorkIntegrity();
+      computeAllSolutions();
+      renderBrushes();
+      renderProcessTable();
+      renderAlgorithms();
+    }
+
+    function renderBrushes() {
+      const container = document.getElementById('brushContainer');
+      container.innerHTML = '';
+
+      state.processes.forEach((p, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'brush-btn' + (state.activeBrush === p.id ? ' selected' : '');
+        btn.style.background = PROCESS_COLORS[idx % PROCESS_COLORS.length];
+        btn.textContent = p.name;
+        btn.addEventListener('click', () => {
+          state.activeBrush = p.id;
+          renderBrushes();
+        });
+        container.appendChild(btn);
+      });
+
+      const eraser = document.createElement('button');
+      eraser.type = 'button';
+      eraser.className = 'brush-btn eraser' + (state.activeBrush === 0 ? ' selected' : '');
+      eraser.textContent = '🧽 Borrar casilla';
+      eraser.addEventListener('click', () => {
+        state.activeBrush = 0;
+        renderBrushes();
+      });
+      container.appendChild(eraser);
+    }
+
+    function renderProcessTable() {
+      const tbody = document.getElementById('processTableBody');
+      tbody.innerHTML = '';
+
+      state.processes.forEach((p, idx) => {
+        const tr = document.createElement('tr');
+        const color = PROCESS_COLORS[idx % PROCESS_COLORS.length];
+        tr.innerHTML = `
+          <td><span class="proc-badge" style="background:${color}">${p.name}</span></td>
+          <td><input type="number" min="1" max="10" value="${p.order}" data-idx="${idx}" data-field="order" /></td>
+          <td><input type="number" min="1" max="20" value="${p.priority}" data-idx="${idx}" data-field="priority" /></td>
+          <td><input type="number" min="1" max="15" value="${p.burst}" data-idx="${idx}" data-field="burst" /></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('change', (e) => {
+          const idx = parseInt(e.target.dataset.idx, 10);
+          const field = e.target.dataset.field;
+          const val = Math.max(1, Math.min(20, parseInt(e.target.value, 10) || 1));
+          e.target.value = val;
+          state.processes[idx][field] = val;
+          recalculateAndRender();
+        });
+      });
+    }
+
+    function renderAlgorithms() {
+      const container = document.getElementById('algorithmsContainer');
+      container.innerHTML = '';
+      const totalBurst = getTotalBurst();
+
+      ALGORITHMS.forEach(algo => {
+        const sol = state.solutions[algo.id];
+        const uw = state.userWork[algo.id];
+        const timelineToUse = state.showingSolution ? sol.timeline : uw.timeline;
+
+        const block = document.createElement('div');
+        block.className = 'algo-block';
+
+        const extraBadge = algo.id === 'rr'
+          ? `Con desalojo (Cuanto = ${state.quantum} ms)`
+          : algo.short;
+
+        let ganttRowsHtml = '';
+        state.processes.forEach((p, idx) => {
+          const color = PROCESS_COLORS[idx % PROCESS_COLORS.length];
+          let cellsHtml = '';
+          for (let t = 0; t < totalBurst; t++) {
+            const isFilled = timelineToUse[t] === p.id;
+            const bgStyle = isFilled ? `background:${color};` : '';
+            const label = isFilled ? p.name : '';
+            cellsHtml += `<td class="gantt-cell" data-algo="${algo.id}" data-proc="${p.id}" data-time="${t}" style="${bgStyle}">${label}</td>`;
+          }
+          ganttRowsHtml += `
+            <tr>
+              <th class="proc-label">${p.name}</th>
+              ${cellsHtml}
+            </tr>
+          `;
+        });
+
+        let timeCellsHtml = '<td><strong>ms</strong></td>';
+        for (let t = 1; t <= totalBurst; t++) {
+          timeCellsHtml += `<td>${t}</td>`;
+        }
+
+        let metricsRowsHtml = '';
+        state.processes.forEach(p => {
+          const trVal = state.showingSolution ? sol.metrics[p.id].tr : uw.metrics[p.id].tr;
+          const teVal = state.showingSolution ? sol.metrics[p.id].te : uw.metrics[p.id].te;
+          const readonlyAttr = state.showingSolution ? 'readonly' : '';
+
+          metricsRowsHtml += `
+            <tr>
+              <td><strong>${p.name}</strong></td>
+              <td><input type="number" step="1" class="metric-input" data-algo="${algo.id}" data-proc="${p.id}" data-metric="tr" value="${trVal}" ${readonlyAttr} /></td>
+              <td><input type="number" step="1" class="metric-input" data-algo="${algo.id}" data-proc="${p.id}" data-metric="te" value="${teVal}" ${readonlyAttr} /></td>
+            </tr>
+          `;
+        });
+
+        const avgTrVal = state.showingSolution ? sol.avgTr : uw.avgTr;
+        const avgTeVal = state.showingSolution ? sol.avgTe : uw.avgTe;
+        const readonlyAttr = state.showingSolution ? 'readonly' : '';
+
+        block.innerHTML = `
+          <div class="algo-header">
+            <span class="algo-title">${algo.title}</span>
+            <span class="algo-badge">${extraBadge}</span>
+          </div>
+          <div class="algo-layout">
+            <div class="gantt-wrapper">
+              <table class="gantt-table">
+                <tbody>
+                  ${ganttRowsHtml}
+                  <tr class="gantt-time-row">${timeCellsHtml}</tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <table class="metrics-table">
+                <thead>
+                  <tr>
+                    <th>Proc.</th>
+                    <th>T. Retorno (ms)</th>
+                    <th>T. Espera (ms)</th>
+                  </tr>
+                </thead>
+                <tbody>${metricsRowsHtml}</tbody>
+                <tfoot>
+                  <tr>
+                    <td>Media</td>
+                    <td><input type="number" step="0.01" class="metric-input" data-algo="${algo.id}" data-metric="avgTr" value="${avgTrVal}" ${readonlyAttr} /></td>
+                    <td><input type="number" step="0.01" class="metric-input" data-algo="${algo.id}" data-metric="avgTe" value="${avgTeVal}" ${readonlyAttr} /></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+          <div class="feedback-banner no-print" id="feedback-${algo.id}"></div>
+        `;
+
+        container.appendChild(block);
+      });
+
+      attachAlgorithmEvents();
+    }
+
+    function attachAlgorithmEvents() {
+      if (state.showingSolution) return;
+
+      document.querySelectorAll('.gantt-cell').forEach(cell => {
+        cell.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          state.isMouseDown = true;
+          paintGanttCell(cell, true);
+        });
+        cell.addEventListener('mouseenter', () => {
+          if (state.isMouseDown) paintGanttCell(cell, false);
+        });
+      });
+
+      document.querySelectorAll('.metric-input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          e.target.classList.remove('input-ok', 'input-err');
+          const algoId = e.target.dataset.algo;
+          const metric = e.target.dataset.metric;
+          const procId = e.target.dataset.proc ? parseInt(e.target.dataset.proc, 10) : null;
+          if (procId) {
+            state.userWork[algoId].metrics[procId][metric] = e.target.value;
+          } else {
+            state.userWork[algoId][metric] = e.target.value;
+          }
+        });
+      });
+    }
+
+    function paintGanttCell(cell, isClick) {
+      const algoId = cell.dataset.algo;
+      const rowProcId = parseInt(cell.dataset.proc, 10);
+      const timeIdx = parseInt(cell.dataset.time, 10);
+      const currentVal = state.userWork[algoId].timeline[timeIdx];
+
+      if (state.activeBrush === 0) {
+        state.userWork[algoId].timeline[timeIdx] = null;
+      } else if (isClick && currentVal === rowProcId) {
+        state.userWork[algoId].timeline[timeIdx] = null;
+      } else {
+        state.userWork[algoId].timeline[timeIdx] = rowProcId;
+      }
+
+      const activePid = state.userWork[algoId].timeline[timeIdx];
+      const cells = document.querySelectorAll(`.gantt-cell[data-algo="${algoId}"][data-time="${timeIdx}"]`);
+      cells.forEach(c => {
+        c.classList.remove('wrong-cell');
+        const pid = parseInt(c.dataset.proc, 10);
+        const procIndex = state.processes.findIndex(p => p.id === pid);
+        const procObj = state.processes[procIndex];
+        const color = PROCESS_COLORS[procIndex % PROCESS_COLORS.length];
+        if (activePid === pid && procObj) {
+          c.style.background = color;
+          c.textContent = procObj.name;
+        } else {
+          c.style.background = '';
+          c.textContent = '';
+        }
+      });
+    }
+
+    function checkUserAnswers() {
+      const totalBurst = getTotalBurst();
+
+      ALGORITHMS.forEach(algo => {
+        const sol = state.solutions[algo.id];
+        const uw = state.userWork[algo.id];
+        let ganttCorrect = 0;
+
+        for (let t = 0; t < totalBurst; t++) {
+          const expectedPid = sol.timeline[t];
+          const userPid = uw.timeline[t];
+          const colCells = document.querySelectorAll(`.gantt-cell[data-algo="${algo.id}"][data-time="${t}"]`);
+          colCells.forEach(c => c.classList.remove('wrong-cell'));
+
+          if (userPid === expectedPid) {
+            ganttCorrect++;
+          } else {
+            colCells.forEach(c => {
+              const pid = parseInt(c.dataset.proc, 10);
+              if (pid === userPid || (userPid === null && pid === expectedPid)) {
+                c.classList.add('wrong-cell');
+              }
+            });
+          }
+        }
+
+        let metricsCorrect = 0;
+        const totalMetrics = state.processes.length * 2 + 2;
+
+        state.processes.forEach(p => {
+          ['tr', 'te'].forEach(m => {
+            const inp = document.querySelector(`.metric-input[data-algo="${algo.id}"][data-proc="${p.id}"][data-metric="${m}"]`);
+            if (!inp) return;
+            const userVal = parseFloat(String(inp.value).replace(',', '.'));
+            const expVal = sol.metrics[p.id][m];
+            if (!isNaN(userVal) && Math.abs(userVal - expVal) < 0.01) {
+              inp.classList.add('input-ok');
+              inp.classList.remove('input-err');
+              metricsCorrect++;
+            } else {
+              inp.classList.add('input-err');
+              inp.classList.remove('input-ok');
+            }
+          });
+        });
+
+        ['avgTr', 'avgTe'].forEach(m => {
+          const inp = document.querySelector(`.metric-input[data-algo="${algo.id}"][data-metric="${m}"]`);
+          if (!inp) return;
+          const userVal = parseFloat(String(inp.value).replace(',', '.'));
+          const expVal = sol[m];
+          if (!isNaN(userVal) && Math.abs(userVal - expVal) <= 0.1) {
+            inp.classList.add('input-ok');
+            inp.classList.remove('input-err');
+            metricsCorrect++;
+          } else {
+            inp.classList.add('input-err');
+            inp.classList.remove('input-ok');
+          }
+        });
+
+        const banner = document.getElementById(`feedback-${algo.id}`);
+        banner.className = 'feedback-banner no-print show';
+        if (ganttCorrect === totalBurst && metricsCorrect === totalMetrics) {
+          banner.classList.add('ok');
+          banner.textContent = `¡Perfecto! Diagrama de Gantt (${ganttCorrect}/${totalBurst} ms) y todos los tiempos son correctos.`;
+        } else {
+          banner.classList.add('partial');
+          banner.textContent = `Gantt correcto: ${ganttCorrect}/${totalBurst} ms | Cálculos correctos: ${metricsCorrect}/${totalMetrics}.`;
+        }
+      });
+    }
+
+    async function exportPDF(blankTemplate) {
+      const prevShowingSolution = state.showingSolution;
+
+      if (blankTemplate) {
+        state.showingSolution = false;
+        document.querySelectorAll('.gantt-cell').forEach(c => {
+          c.style.background = '';
+          c.textContent = '';
+          c.classList.remove('wrong-cell');
+        });
+        document.querySelectorAll('.metric-input').forEach(inp => {
+          inp.value = '';
+          inp.classList.remove('input-ok', 'input-err');
+        });
+        document.body.classList.add('pdf-blank-mode');
+      } else {
+        document.body.classList.add('pdf-export-mode');
+      }
+
+      const element = document.getElementById('worksheet');
+      const filename = blankTemplate
+        ? 'plantilla_planificacion_procesos_en_blanco.pdf'
+        : 'planificacion_procesos_resuelto.pdf';
+
+      if (typeof window.html2pdf !== 'undefined') {
+        const opt = {
+          margin: [6, 6, 6, 6],
+          filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        try {
+          await window.html2pdf().set(opt).from(element).save();
+        } catch (err) {
+          window.print();
+        }
+      } else {
+        window.print();
+      }
+
+      document.body.classList.remove('pdf-blank-mode', 'pdf-export-mode');
+      state.showingSolution = prevShowingSolution;
+      renderAlgorithms();
+    }
+  </script>
+</body>
+</html>
