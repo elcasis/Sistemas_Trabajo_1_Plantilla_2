@@ -34,7 +34,7 @@
     }
 
     .app-shell {
-      max-width: 1240px;
+      max-width: 1200px;
       margin: 0 auto;
     }
 
@@ -340,7 +340,7 @@
 
     .algo-layout {
       display: grid;
-      grid-template-columns: 1fr 250px;
+      grid-template-columns: 1fr 255px;
       gap: 10px;
       align-items: center;
     }
@@ -351,7 +351,7 @@
       }
     }
 
-    /* Diagrama de Gantt (40 columnas) */
+    /* Diagrama de Gantt (34 columnas) */
     .gantt-wrapper {
       overflow-x: auto;
     }
@@ -364,8 +364,8 @@
     }
 
     .gantt-table th.proc-label {
-      width: 28px;
-      font-size: 0.72rem;
+      width: 32px;
+      font-size: 0.74rem;
       font-weight: 700;
       text-align: center;
       border: 1px solid #475569;
@@ -376,9 +376,9 @@
 
     .gantt-cell {
       border: 1px solid #94a3b8;
-      height: 19px;
+      height: 20px;
       text-align: center;
-      font-size: 0.56rem;
+      font-size: 0.62rem;
       font-weight: 700;
       color: #fff;
       cursor: pointer;
@@ -405,7 +405,7 @@
     .gantt-time-row td {
       border: 1px solid #cbd5e1;
       background: #f8fafc;
-      font-size: 0.55rem;
+      font-size: 0.6rem;
       color: #475569;
       text-align: center;
       padding: 1px 0;
@@ -438,7 +438,7 @@
     }
 
     .metric-input {
-      width: 46px;
+      width: 48px;
       border: 1px solid #cbd5e1;
       border-radius: 4px;
       text-align: center;
@@ -586,7 +586,7 @@
       <div class="toolbar-top">
         <div class="toolbar-title">
           <h1>Simulador y Generador de Ejercicios: Planificación de Procesos</h1>
-          <p>Rellena la plantilla en el navegador, genera enunciados aleatorios o descarga el PDF en blanco o resuelto.</p>
+          <p>Rellena la plantilla haciendo clic en las cuadrículas, genera enunciados aleatorios o descarga el PDF en blanco o resuelto.</p>
         </div>
         <div class="btn-group">
           <button type="button" class="btn-outline" id="btnOriginal">
@@ -624,7 +624,7 @@
 
         <div class="control-item">
           <label for="maxTotalBurst"><strong>Suma máx. ráfagas (aleatorio):</strong></label>
-          <input type="number" id="maxTotalBurst" min="15" max="40" value="35" />
+          <input type="number" id="maxTotalBurst" min="15" max="34" value="32" />
         </div>
 
         <div class="btn-group" style="margin-left:auto;">
@@ -638,7 +638,7 @@
       </div>
 
       <div class="palette-bar">
-        <span class="palette-label">Modo interactivo: haz clic o arrastra sobre las filas del diagrama de Gantt para pintar cada milisegundo:</span>
+        <span class="palette-label">Haz clic o arrastra directamente en la fila de cada proceso (P1, P2...) para pintar o borrar casillas:</span>
         <div id="brushContainer" class="btn-group"></div>
       </div>
     </div>
@@ -698,8 +698,8 @@
   </div>
 
   <script>
-    // Número fijo de columnas en la cuadrícula de Gantt (40 ms)
-    const FIXED_GRID_COLS = 40;
+    // Cuadrícula fija hasta 34 ms
+    const FIXED_GRID_COLS = 34;
 
     const PROCESS_COLORS = [
       '#3b82f6', // P1
@@ -731,6 +731,7 @@
       showingSolution: false,
       activeBrush: 1,
       isMouseDown: false,
+      dragMode: 'paint', // 'paint' o 'erase' mientras se arrastra el ratón
       userWork: {},
       solutions: {}
     };
@@ -742,7 +743,7 @@
     });
 
     function initEvents() {
-      document.addEventListener('mouseup', () => {
+      window.addEventListener('mouseup', () => {
         state.isMouseDown = false;
       });
 
@@ -804,9 +805,8 @@
       return state.processes.reduce((acc, p) => acc + (parseInt(p.burst, 10) || 1), 0);
     }
 
-    // La cuadrícula muestra siempre 40 ms (o más si el usuario edita manualmente las ráfagas por encima de 40)
     function getGridCols() {
-      return Math.max(FIXED_GRID_COLS, getTotalBurst());
+      return FIXED_GRID_COLS;
     }
 
     function resetUserWork() {
@@ -842,18 +842,18 @@
 
     function generateRandomExercise() {
       const n = parseInt(document.getElementById('numProcesses').value, 10) || 5;
-      const maxTotal = Math.max(n * 2, Math.min(FIXED_GRID_COLS, parseInt(document.getElementById('maxTotalBurst').value, 10) || 35));
-      const minTotal = Math.max(n * 3, Math.min(22, maxTotal - 6));
+      const maxTotal = Math.max(n * 2, Math.min(FIXED_GRID_COLS, parseInt(document.getElementById('maxTotalBurst').value, 10) || 32));
+      const minTotal = Math.max(n * 3, Math.min(20, maxTotal - 6));
       const targetTotal = Math.floor(Math.random() * (maxTotal - minTotal + 1)) + minTotal;
 
       const bursts = new Array(n).fill(2);
       let rem = targetTotal - n * 2;
       while (rem > 0) {
         const idx = Math.floor(Math.random() * n);
-        if (bursts[idx] < 10) {
+        if (bursts[idx] < 9) {
           bursts[idx]++;
           rem--;
-        } else if (bursts.every(b => b >= 10)) {
+        } else if (bursts.every(b => b >= 9)) {
           break;
         }
       }
@@ -983,7 +983,7 @@
       const eraser = document.createElement('button');
       eraser.type = 'button';
       eraser.className = 'brush-btn eraser' + (state.activeBrush === 0 ? ' selected' : '');
-      eraser.textContent = '🧽 Borrar casilla';
+      eraser.textContent = '🧽 Modo Goma';
       eraser.addEventListener('click', () => {
         state.activeBrush = 0;
         renderBrushes();
@@ -1011,7 +1011,16 @@
         inp.addEventListener('change', (e) => {
           const idx = parseInt(e.target.dataset.idx, 10);
           const field = e.target.dataset.field;
-          const val = Math.max(1, Math.min(20, parseInt(e.target.value, 10) || 1));
+          let val = Math.max(1, Math.min(20, parseInt(e.target.value, 10) || 1));
+
+          // Evitar que la suma de ráfagas supere las 34 columnas de la plantilla
+          if (field === 'burst') {
+            const otherSum = state.processes.reduce((acc, pr, i) => i === idx ? acc : acc + pr.burst, 0);
+            if (otherSum + val > FIXED_GRID_COLS) {
+              val = Math.max(1, FIXED_GRID_COLS - otherSum);
+            }
+          }
+
           e.target.value = val;
           state.processes[idx][field] = val;
           recalculateAndRender();
@@ -1128,10 +1137,28 @@
         cell.addEventListener('mousedown', (e) => {
           e.preventDefault();
           state.isMouseDown = true;
-          paintGanttCell(cell, true);
+
+          const algoId = cell.dataset.algo;
+          const rowProcId = parseInt(cell.dataset.proc, 10);
+          const timeIdx = parseInt(cell.dataset.time, 10);
+          const currentVal = state.userWork[algoId].timeline[timeIdx];
+
+          // Si está en modo goma o hace clic en una casilla ya pintada en esa fila, borra; si no, pinta
+          if (state.activeBrush === 0 || currentVal === rowProcId) {
+            state.dragMode = 'erase';
+          } else {
+            state.dragMode = 'paint';
+            state.activeBrush = rowProcId;
+            renderBrushes();
+          }
+
+          applyCellAction(cell);
         });
+
         cell.addEventListener('mouseenter', () => {
-          if (state.isMouseDown) paintGanttCell(cell, false);
+          if (state.isMouseDown) {
+            applyCellAction(cell);
+          }
         });
       });
 
@@ -1150,29 +1177,27 @@
       });
     }
 
-    function paintGanttCell(cell, isClick) {
+    function applyCellAction(cell) {
       const algoId = cell.dataset.algo;
       const rowProcId = parseInt(cell.dataset.proc, 10);
       const timeIdx = parseInt(cell.dataset.time, 10);
-      const currentVal = state.userWork[algoId].timeline[timeIdx];
 
-      if (state.activeBrush === 0) {
-        state.userWork[algoId].timeline[timeIdx] = null;
-      } else if (isClick && currentVal === rowProcId) {
+      if (state.dragMode === 'erase') {
         state.userWork[algoId].timeline[timeIdx] = null;
       } else {
         state.userWork[algoId].timeline[timeIdx] = rowProcId;
       }
 
       const activePid = state.userWork[algoId].timeline[timeIdx];
-      const cells = document.querySelectorAll(`.gantt-cell[data-algo="${algo.id}"][data-time="${timeIdx}"]`);
-      // Actualizar toda la columna timeIdx del algoritmo actual
-      document.querySelectorAll(`.gantt-cell[data-algo="${algoId}"][data-time="${timeIdx}"]`).forEach(c => {
+      const colCells = document.querySelectorAll(`.gantt-cell[data-algo="${algoId}"][data-time="${timeIdx}"]`);
+
+      colCells.forEach(c => {
         c.classList.remove('wrong-cell');
         const pid = parseInt(c.dataset.proc, 10);
         const procIndex = state.processes.findIndex(p => p.id === pid);
         const procObj = state.processes[procIndex];
         const color = PROCESS_COLORS[procIndex % PROCESS_COLORS.length];
+
         if (activePid === pid && procObj) {
           c.style.background = color;
           c.textContent = procObj.name;
@@ -1211,7 +1236,6 @@
               });
             }
           } else if (userPid !== null) {
-            // Casilla pintada más allá de la duración total de las ráfagas
             extraPaintedErrors++;
             colCells.forEach(c => {
               if (parseInt(c.dataset.proc, 10) === userPid) {
